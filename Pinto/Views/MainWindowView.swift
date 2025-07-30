@@ -1,0 +1,126 @@
+import SwiftUI
+
+struct MainWindowView: View {
+    @StateObject private var profileManager = ProfileManager()
+    @State private var showingCustomization = false
+    @State private var showingProfileSelector = false
+    
+    var body: some View {
+        ZStack {
+            // Background gradient
+            backgroundGradient
+            
+            VStack(spacing: 0) {
+                // Custom title bar
+                titleBar
+                
+                // Main terminal container
+                terminalContainer
+            }
+        }
+        .frame(minWidth: 600, minHeight: 400)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    profileManager.activeProfile.borderStyle.color.color,
+                    lineWidth: profileManager.activeProfile.borderStyle.width
+                )
+        )
+        .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+        .sheet(isPresented: $showingCustomization) {
+            CustomizationPanel(
+                profile: $profileManager.activeProfile,
+                profileManager: profileManager
+            )
+        }
+        .sheet(isPresented: $showingProfileSelector) {
+            ProfileSelector(profileManager: profileManager)
+        }
+    }
+    
+    private var backgroundGradient: some View {
+        Group {
+            if profileManager.activeProfile.gradientTheme.direction == .radial {
+                profileManager.activeProfile.gradientTheme.radialGradient
+            } else {
+                profileManager.activeProfile.gradientTheme.linearGradient
+            }
+        }
+        .opacity(profileManager.activeProfile.windowOpacity)
+        .animation(.easeInOut(duration: 0.3), value: profileManager.activeProfile.gradientTheme)
+    }
+    
+    private var titleBar: some View {
+        HStack {
+            // Profile emoji and name
+            HStack(spacing: 8) {
+                Text(profileManager.activeProfile.emoji)
+                    .font(.title2)
+                    .scaleEffect(1.2)
+                
+                Text(profileManager.activeProfile.name)
+                    .font(.headline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+            }
+            .onTapGesture {
+                showingProfileSelector = true
+            }
+            .help("Click to change terminal personality")
+            
+            Spacer()
+            
+            // Control buttons
+            HStack(spacing: 12) {
+                Button(action: { showingCustomization = true }) {
+                    Image(systemName: "paintbrush.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Customize appearance")
+                
+                Button(action: { showingProfileSelector = true }) {
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Switch profile")
+                
+                Button(action: { NSApp.keyWindow?.close() }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Close window")
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial)
+        .overlay(
+            Rectangle()
+                .frame(height: 0.5)
+                .foregroundColor(.primary.opacity(0.1)),
+            alignment: .bottom
+        )
+    }
+    
+    private var terminalContainer: some View {
+        TerminalWrapperView(profile: $profileManager.activeProfile)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: max(0, profileManager.activeProfile.borderStyle.cornerRadius - 4)
+                )
+            )
+    }
+}
+
+#Preview {
+    MainWindowView()
+        .frame(width: 800, height: 600)
+}
