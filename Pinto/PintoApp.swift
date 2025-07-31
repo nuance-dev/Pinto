@@ -9,6 +9,6 @@ struct PintoApp: App {
         }
         .windowStyle(.plain)
         .windowBackgroundDragBehavior(.enabled)
-        .windowResizability(.contentSize)
+        
     }
 }

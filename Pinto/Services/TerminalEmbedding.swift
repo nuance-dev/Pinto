@@ -45,6 +45,12 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
                 if let profile = self.getCurrentProfile() {
                     self.setupTerminal(with: profile)
                 }
+                // Ensure the app is active and the window can accept key events
+                NSApp.activate(ignoringOtherApps: true)
+                self.window?.makeKeyAndOrderFront(nil)
+                if let terminal = self.terminalView {
+                    self.window?.makeFirstResponder(terminal)
+                }
             }
         }
     }
@@ -92,6 +98,12 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
             terminalView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -padding)
         ])
         
+        // Ensure the terminal view resizes with its container and immediately receives keyboard focus
+        terminalView.autoresizingMask = [.width, .height]
+        DispatchQueue.main.async { [weak self] in
+            self?.window?.makeFirstResponder(self?.terminalView)
+        }
+
         // Mark as initialized before starting process
         isTerminalInitialized = true
         

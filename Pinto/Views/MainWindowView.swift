@@ -55,14 +55,16 @@ struct MainWindowView: View {
             }
         }
         .frame(minWidth: 600, minHeight: 400)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            Rectangle()
                 .stroke(
                     profileManager.activeProfile.borderStyle.color.color,
                     lineWidth: profileManager.activeProfile.borderStyle.width
                 )
+                .allowsHitTesting(false)
         )
         .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
         .sheet(isPresented: $showingCustomization) {
