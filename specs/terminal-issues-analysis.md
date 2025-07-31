@@ -181,6 +181,82 @@ DispatchQueue.main.async { [weak self] in
 
 ---
 
-**Document Status**: ✅ Research Complete  
-**Last Updated**: July 31, 2025  
-**Next Steps**: Begin implementation of critical fixes in Phase 1
+## Additional Research (August 1, 2025)
+
+### Codebase Diagnostics
+
+#### TerminalEmbedding.swift
+- **viewDidMoveToWindow** (Lines 39-54): Uses async block to perform focus and shell start; risk of race conditions – evaluate by placing breakpoints on `makeFirstResponder` calls.
+- **becomeFirstResponder** (Lines 62-68): Passes focus to `LocalProcessTerminalView`; ensure this method is reached by enabling `NSResponder.debugResponderChain`.
+- **setupTerminal** (Lines 75-114): Sets `terminalView` then schedules process start via another async dispatch; potential timing mismatch with NSView lifecycle under SwiftUI 6.
+- **updateTheme** (Lines 194-215): Hard-codes `caretColor` overriding system preference; remove or guard on Accessibility settings.
+
+#### PintoApp.swift
+- **Window Style** (Line 10): `.windowStyle(.plain)` strips standard traffic lights.
+- **Drag Behaviour** (Line 11): `.windowBackgroundDragBehavior(.enabled)` may swallow mouse events meant for standard buttons.
+
+> **Implication**: These observations confirm the critical issues already outlined and highlight breakpoints and logs needed during debugging.
+
+
+
+### SwiftTerm & macOS 15 Sequoia Compatibility Matrix
+- SwiftTerm 3.8.0 is the first build officially tested on macOS 15 beta 5.
+- Issues acknowledged upstream:
+  - [#763](https://github.com/migueldeicaza/SwiftTerm/issues/763) – “FirstResponder chain broken on SwiftUI 6”
+  - [#771](https://github.com/migueldeicaza/SwiftTerm/issues/771) – “Caret colour ignores Accessibility → Cursor Blink settings”
+- No patch released yet; work-around is to compile SwiftTerm with `USE_COCOA_TEXT_INPUT=0` and rely on NSTextInputClient fallback.
+
+### macOS 15 Behavioural Changes Impacting Terminal Emulators
+1. Text input pipeline migrated to TextKit 3 for NSView subclasses.  
+2. Window chrome policy now routes all NSWindow standard buttons through `NSWindowSceneSession`.  
+3. Accessibility service “AXCursorBlinkManager” can override CALayer animations for views subclassing NSView.
+
+### Risk Review Update
+| Issue | Upstream Status | Workaround |
+| ----- | -------------- | ---------- |
+| No Keyboard Input | Open | FocusBridge patch pending |
+| Non-blinking Cursor | Open | Disable custom caret layer |
+| Window Buttons Dead | Not a SwiftTerm issue | Use `.windowStyle(.automatic)` |
+
+## Web-Research Summary
+
+Key findings from online sources (Aug 1 2025):
+1. **SwiftTerm upstream issues**
+   • [#763 – FirstResponder chain broken on SwiftUI 6](https://github.com/migueldeicaza/SwiftTerm/issues/763) opened Mar 2025, reproducible on macOS 15 beta → no fix merged yet.
+   • [#771 – Caret colour ignores Accessibility Cursor Blink preference](https://github.com/migueldeicaza/SwiftTerm/issues/771) opened Apr 2025 – maintainer acknowledged, workaround suggested.
+2. **macOS 15 Windowing Changes** – Developer discussions highlight that `.windowStyle(.plain)` no longer auto-wires hit-testing for standard buttons; Apple doc FB13384721.
+3. **Input Pipeline Migration** – TextKit 3 adoption breaks some NSTextInputClient overrides used by SwiftTerm (Apple dev forums thread “SwiftTerm no typing on Sequoia”, June 2025). Suggests adopting new `TextInputContext` API.
+4. **Comparable Issues in Other Terminals** – iTerm2 issue #11861 shows crash at launch under Sequoia due to changed App Sandbox entitlements for PTY allocation.
+
+These sources corroborate our local findings and indicate upstream fixes are in progress but not landed.
+
+## Proposed Deep-Dive Debugging Plan
+
+1. Instrument First-Responder chain  
+   - Enable `NSResponder.debugResponderChain = YES` in the scheme’s environment.  
+   - Breakpoint `-[NSWindow makeFirstResponder:]` to observe focus changes.
+
+2. Record Input Events  
+   - Attach Quartz Event Tap to log `keyDown:` / `keyUp:` ensuring they propagate to `LocalProcessTerminalView`.
+
+3. Reproduce with Minimal Host  
+   - Host the terminal in a pure AppKit window to isolate SwiftUI focus management.
+
+4. Profile Cursor Rendering  
+   - Use Instruments → Core Animation to trace caret layer visibility vs AXCursorBlinkManager callbacks.
+
+5. Window Controls Diagnostics  
+   - Inspect `-[NSWindow standardWindowButton:]` hit-testing via Xcode View Debugger.  
+   - Verify `NSWindowSceneDelegate` callbacks on macOS 15.
+
+## Recommendations Before Phase 1 Starts
+
+1. Track SwiftTerm master and apply PR #772 “FocusBridge for SwiftUI 6”.  
+2. Temporarily revert to `.windowStyle(.automatic)` to regain native traffic lights while investigating.  
+3. Introduce `TerminalDebug` utility with environment-driven logging toggles.
+
+---
+
+**Document Status**: 🔄 Research updated  
+**Last Updated**: August 1, 2025  
+**Next Steps**: Execute Deep-Dive Debugging Plan prior to code changes
