@@ -40,6 +40,7 @@ struct MainWindowView: View {
     @StateObject private var profileManager = ProfileManager()
     @State private var showingCustomization = false
     @State private var showingProfileSelector = false
+    @State private var dragOffset: CGSize = .zero
     
     var body: some View {
         ZStack {
@@ -57,6 +58,12 @@ struct MainWindowView: View {
         .frame(minWidth: 600, minHeight: 400)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onAppear {
+            dragOffset = .zero
+            if let window = NSApp.keyWindow {
+                window.isMovableByWindowBackground = true
+            }
+        }
         
         .overlay(
             Rectangle()
@@ -67,6 +74,25 @@ struct MainWindowView: View {
                 .allowsHitTesting(false)
         )
         .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    if dragOffset == .zero {
+                        dragOffset = value.translation
+                    }
+                    if let window = NSApp.keyWindow {
+                        let origin = window.frame.origin
+                        let deltaX = value.translation.width - dragOffset.width
+                        let deltaY = value.translation.height - dragOffset.height
+                        let newOrigin = NSPoint(x: origin.x + deltaX, y: origin.y - deltaY)
+                        window.setFrameOrigin(newOrigin)
+                    }
+                }
+                .onEnded { _ in
+                    dragOffset = .zero
+                }
+        )
         .sheet(isPresented: $showingCustomization) {
             CustomizationPanel(
                 profile: $profileManager.activeProfile,

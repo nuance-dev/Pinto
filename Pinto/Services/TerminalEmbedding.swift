@@ -250,7 +250,12 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
         
         // Ensure proper resizing and redraw
         DispatchQueue.main.async { [weak self] in
-            self?.needsDisplay = true
+            guard let self = self else { return }
+            self.needsDisplay = true
+            // Reassert keyboard focus in case it was lost during resize
+            if self.window?.firstResponder !== self.terminalView {
+                self.window?.makeFirstResponder(self.terminalView)
+            }
         }
     }
     
