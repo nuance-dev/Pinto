@@ -245,17 +245,10 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
     }
     
     func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {
-        // Handle terminal size changes for optimal display
-        print("Terminal size changed to \(newCols)x\(newRows)")
-        
-        // Ensure proper resizing and redraw
+        // This delegate method is called frequently during resizing.
+        // We only need to ensure the view is redrawn.
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.needsDisplay = true
-            // Reassert keyboard focus in case it was lost during resize
-            if self.window?.firstResponder !== self.terminalView {
-                self.window?.makeFirstResponder(self.terminalView)
-            }
+            self?.needsDisplay = true
         }
     }
     
