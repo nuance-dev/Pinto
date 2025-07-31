@@ -1,5 +1,41 @@
 import SwiftUI
 
+// MARK: - Traffic Light Button Component
+enum TrafficLightType {
+    case close, minimize, zoom
+    
+    var color: Color {
+        switch self {
+        case .close: return .red
+        case .minimize: return .yellow
+        case .zoom: return .green
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .close: return "xmark"
+        case .minimize: return "minus"
+        case .zoom: return "plus"
+        }
+    }
+}
+
+struct TrafficLightButton: View {
+    let type: TrafficLightType
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Circle()
+                .fill(type.color)
+                .frame(width: 12, height: 12)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+
 struct MainWindowView: View {
     @StateObject private var profileManager = ProfileManager()
     @State private var showingCustomization = false
@@ -54,7 +90,25 @@ struct MainWindowView: View {
     
     private var titleBar: some View {
         HStack {
-            // Profile emoji and name
+            // macOS traffic light buttons
+            HStack(spacing: 8) {
+                TrafficLightButton(type: .close) {
+                    NSApp.keyWindow?.close()
+                }
+                
+                TrafficLightButton(type: .minimize) {
+                    NSApp.keyWindow?.miniaturize(nil)
+                }
+                
+                TrafficLightButton(type: .zoom) {
+                    NSApp.keyWindow?.zoom(nil)
+                }
+            }
+            .padding(.leading, 8)
+            
+            Spacer()
+            
+            // Profile emoji and name (centered) - DRAGGABLE AREA
             HStack(spacing: 8) {
                 Text(profileManager.activeProfile.emoji)
                     .font(.title2)
@@ -69,10 +123,22 @@ struct MainWindowView: View {
                 showingProfileSelector = true
             }
             .help("Click to change terminal personality")
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        guard let window = NSApp.keyWindow else { return }
+                        let currentLocation = window.frame.origin
+                        let newLocation = NSPoint(
+                            x: currentLocation.x + value.translation.width,
+                            y: currentLocation.y - value.translation.height
+                        )
+                        window.setFrameOrigin(newLocation)
+                    }
+            )
             
             Spacer()
             
-            // Control buttons
+            // Control buttons (right side)
             HStack(spacing: 12) {
                 Button(action: { showingCustomization = true }) {
                     Image(systemName: "paintbrush.fill")
@@ -89,17 +155,10 @@ struct MainWindowView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Switch profile")
-                
-                Button(action: { NSApp.keyWindow?.close() }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Close window")
             }
+            .padding(.trailing, 8)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 8)
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
         .overlay(
@@ -112,11 +171,6 @@ struct MainWindowView: View {
     
     private var terminalContainer: some View {
         TerminalWrapperView(profile: $profileManager.activeProfile)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: max(0, profileManager.activeProfile.borderStyle.cornerRadius - 4)
-                )
-            )
     }
 }
 

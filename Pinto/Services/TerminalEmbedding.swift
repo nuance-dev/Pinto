@@ -49,6 +49,18 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
         }
     }
     
+    override var acceptsFirstResponder: Bool {
+        return true
+    }
+    
+    override func becomeFirstResponder() -> Bool {
+        // Pass first responder to terminal view if available
+        if let terminalView = terminalView {
+            return terminalView.becomeFirstResponder()
+        }
+        return super.becomeFirstResponder()
+    }
+    
     private func getCurrentProfile() -> TerminalProfile? {
         // Helper method to get current profile if available
         return TerminalProfile() // Default profile for now
@@ -70,11 +82,14 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
         // Add to view hierarchy
         addSubview(terminalView)
         terminalView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Add padding around the terminal for better visual spacing
+        let padding: CGFloat = 16.0
         NSLayoutConstraint.activate([
-            terminalView.topAnchor.constraint(equalTo: topAnchor),
-            terminalView.leadingAnchor.constraint(equalTo: leadingAnchor),  
-            terminalView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            terminalView.bottomAnchor.constraint(equalTo: bottomAnchor)
+            terminalView.topAnchor.constraint(equalTo: topAnchor, constant: padding),
+            terminalView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: padding),  
+            terminalView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -padding),
+            terminalView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -padding)
         ])
         
         // Mark as initialized before starting process
@@ -178,6 +193,10 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
         
         // Configure selection colors
         terminalView.selectedTextBackgroundColor = NSColor.selectedContentBackgroundColor
+        
+        // Ensure terminal can receive keyboard input
+        terminalView.becomeFirstResponder()
+        terminalView.needsDisplay = true
         
         // The gradient background from our wrapper will show through
         // Reason: This creates a unified visual experience with the app's theming

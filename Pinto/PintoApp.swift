@@ -7,7 +7,8 @@ struct PintoApp: App {
             ContentView()
                 .frame(minWidth: 600, minHeight: 400)
         }
-        .windowStyle(.hiddenTitleBar)
+        .windowStyle(.plain)
+        .windowBackgroundDragBehavior(.enabled)
         .windowResizability(.contentSize)
     }
 }

@@ -3,7 +3,7 @@ import Foundation
 import AppKit
 
 struct TerminalProfile: Codable, Identifiable, Equatable {
-    let id = UUID()
+    let id: UUID
     var name: String
     var emoji: String
     var gradientTheme: GradientTheme
@@ -13,12 +13,14 @@ struct TerminalProfile: Codable, Identifiable, Equatable {
     var lastUsed: Date
     
     init(
+        id: UUID = UUID(),
         name: String = "Terminal",
         emoji: String = "💻",
         gradientTheme: GradientTheme = .default,
         windowOpacity: Double = 0.95,
         borderStyle: BorderStyle = .subtle
     ) {
+        self.id = id
         self.name = name
         self.emoji = emoji
         self.gradientTheme = gradientTheme
