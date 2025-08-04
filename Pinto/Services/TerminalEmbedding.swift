@@ -7,6 +7,15 @@ struct TerminalEmbeddingView: NSViewRepresentable {
     
     func makeNSView(context: Context) -> PintoTerminalView {
         let terminalView = PintoTerminalView()
+        
+        // Request focus after view is in window hierarchy
+        // Reason: macOS 15 requires delayed focus for NSViewRepresentable
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let window = terminalView.window {
+                window.makeFirstResponder(terminalView)
+            }
+        }
+        
         return terminalView
     }
     
@@ -17,12 +26,21 @@ struct TerminalEmbeddingView: NSViewRepresentable {
         } else {
             nsView.updateTheme(with: profile)
         }
+        
+        // Ensure focus remains on terminal during updates
+        // Reason: macOS 15 can lose focus during view updates
+        if let window = nsView.window,
+           window.firstResponder !== nsView && window.firstResponder !== nsView.terminalView {
+            DispatchQueue.main.async {
+                window.makeFirstResponder(nsView)
+            }
+        }
     }
 }
 
 // MARK: - PintoTerminalView using SwiftTerm
 class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
-    private var terminalView: LocalProcessTerminalView!
+    private(set) var terminalView: LocalProcessTerminalView!
     private(set) var isTerminalInitialized = false
     
     override init(frame frameRect: NSRect) {
@@ -38,20 +56,27 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
     
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        // Additional setup when view is added to window hierarchy
-        if window != nil && !isTerminalInitialized {
-            // Trigger setup if we have a profile ready
-            DispatchQueue.main.async {
-                if let profile = self.getCurrentProfile() {
-                    self.setupTerminal(with: profile)
-                }
-                // Ensure the app is active and the window can accept key events
-                NSApp.activate(ignoringOtherApps: true)
-                self.window?.makeKeyAndOrderFront(nil)
-                if let terminal = self.terminalView {
-                    self.window?.makeFirstResponder(terminal)
-                }
-            }
+        // Setup when view is added to window hierarchy
+        guard window != nil, !isTerminalInitialized else { return }
+        
+        // Initialize terminal immediately with synchronous setup
+        if let profile = getCurrentProfile() {
+            setupTerminal(with: profile)
+        }
+        
+        // Delayed focus setup to ensure view hierarchy is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self,
+                  let window = self.window,
+                  let terminal = self.terminalView else { return }
+            
+            // Activate app and make window key
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            
+            // Use window's makeFirstResponder instead of becomeFirstResponder
+            // Reason: Direct becomeFirstResponder calls fail on macOS 15 Sequoia
+            window.makeFirstResponder(terminal)
         }
     }
     
@@ -62,6 +87,11 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
     override func becomeFirstResponder() -> Bool {
         // Pass first responder to terminal view if available
         if let terminalView = terminalView {
+            // Use window's makeFirstResponder for reliability on macOS 15
+            // Reason: Direct becomeFirstResponder calls can fail
+            if let window = window {
+                return window.makeFirstResponder(terminalView)
+            }
             return terminalView.becomeFirstResponder()
         }
         return super.becomeFirstResponder()
@@ -98,19 +128,21 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
             terminalView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -padding)
         ])
         
-        // Ensure the terminal view resizes with its container and immediately receives keyboard focus
+        // Ensure the terminal view resizes with its container
         terminalView.autoresizingMask = [.width, .height]
-        DispatchQueue.main.async { [weak self] in
-            self?.window?.makeFirstResponder(self?.terminalView)
+        
+        // Set initial focus without async to avoid race conditions
+        // Reason: Synchronous focus setup prevents macOS 15 timing issues
+        if let window = window {
+            window.makeFirstResponder(terminalView)
         }
 
         // Mark as initialized before starting process
         isTerminalInitialized = true
         
-        // Start the shell process with a slight delay to ensure view is ready
-        DispatchQueue.main.async { [weak self] in
-            self?.startShellProcess()
-        }
+        // Start shell process immediately - view is already initialized
+        // Reason: Removing async prevents race conditions on macOS 15
+        startShellProcess()
     }
     
     private func startShellProcess() {
@@ -200,15 +232,17 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
         // Configure native colors for better visibility
         terminalView.configureNativeColors()
         
-        // Set cursor style for better visibility
-        terminalView.caretColor = NSColor.labelColor
+        // Let system handle cursor to respect accessibility preferences
+        // Reason: macOS 15 Sequoia cursor preferences conflict with manual styling
         
         // Configure selection colors
         terminalView.selectedTextBackgroundColor = NSColor.selectedContentBackgroundColor
         
-        // Ensure terminal can receive keyboard input
-        terminalView.becomeFirstResponder()
+        // Request display update
         terminalView.needsDisplay = true
+        
+        // Focus will be handled by window's makeFirstResponder
+        // Reason: Direct becomeFirstResponder calls fail on macOS 15
         
         // The gradient background from our wrapper will show through
         // Reason: This creates a unified visual experience with the app's theming

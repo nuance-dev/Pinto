@@ -7,7 +7,7 @@ struct PintoApp: App {
             ContentView()
                 .frame(minWidth: 600, minHeight: 400)
         }
-        .windowStyle(.plain)
+        .windowStyle(.automatic)
         .windowBackgroundDragBehavior(.enabled)
         
     }
