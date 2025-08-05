@@ -9,15 +9,18 @@ class ProfileManager: ObservableObject {
     private let userDefaults = UserDefaults.standard
     private let profilesKey = "PintoProfiles"
     private let activeProfileKey = "PintoActiveProfile"
+    private let windowId: String
     
-    init() {
+    init(windowId: String? = nil) {
+        self.windowId = windowId ?? UUID().uuidString
+        
         // Initialize with default profile
         self.activeProfile = TerminalProfile()
         
         // Load saved profiles or use presets
         loadProfiles()
         
-        // Set active profile from last session
+        // Set active profile from last session (per window)
         loadActiveProfile()
     }
     
@@ -98,14 +101,26 @@ class ProfileManager: ObservableObject {
     private func saveActiveProfile() {
         do {
             let data = try JSONEncoder().encode(activeProfile)
-            userDefaults.set(data, forKey: activeProfileKey)
+            let windowKey = "\(activeProfileKey)_\(windowId)"
+            userDefaults.set(data, forKey: windowKey)
         } catch {
             print("Failed to save active profile: \(error)")
         }
     }
     
     private func loadActiveProfile() {
-        guard let data = userDefaults.data(forKey: activeProfileKey) else {
+        let windowKey = "\(activeProfileKey)_\(windowId)"
+        guard let data = userDefaults.data(forKey: windowKey) else {
+            // No saved profile for this window, try global fallback
+            if let globalData = userDefaults.data(forKey: activeProfileKey) {
+                do {
+                    activeProfile = try JSONDecoder().decode(TerminalProfile.self, from: globalData)
+                    return
+                } catch {
+                    // Fallback to first profile
+                }
+            }
+            
             // Use first profile as default
             if !profiles.isEmpty {
                 activeProfile = profiles[0]

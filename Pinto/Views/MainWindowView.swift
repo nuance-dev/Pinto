@@ -37,9 +37,15 @@ struct TrafficLightButton: View {
 
 
 struct MainWindowView: View {
-    @StateObject private var profileManager = ProfileManager()
+    @StateObject private var profileManager: ProfileManager
     @State private var showingCustomization = false
     @State private var showingProfileSelector = false
+    
+    init() {
+        // Create a unique ProfileManager for each window instance
+        let windowId = UUID().uuidString
+        self._profileManager = StateObject(wrappedValue: ProfileManager(windowId: windowId))
+    }
     
     var body: some View {
         ZStack {

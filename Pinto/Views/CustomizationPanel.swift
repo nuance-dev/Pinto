@@ -7,22 +7,20 @@ struct CustomizationPanel: View {
     
     @State private var tempProfile: TerminalProfile
     @State private var selectedGradientPreset: String?
-    @State private var expandedSections: Set<CustomizationSection> = [.basic, .gradient, .appearance]
+    @State private var selectedTab: CustomizationTab = .appearance
     
-    enum CustomizationSection: String, CaseIterable, Identifiable {
-        case basic = "Basic Information"
-        case gradient = "Gradient Theme"
+    enum CustomizationTab: String, CaseIterable, Identifiable {
         case appearance = "Appearance"
-        case preview = "Preview"
+        case gradient = "Colors"
+        case advanced = "Advanced"
         
         var id: String { rawValue }
         
         var icon: String {
             switch self {
-            case .basic: return "info.circle"
-            case .gradient: return "paintpalette"
-            case .appearance: return "eyeglasses"
-            case .preview: return "eye"
+            case .appearance: return "paintbrush.pointed"
+            case .gradient: return "eyedropper.halffull"
+            case .advanced: return "slider.horizontal.3"
             }
         }
     }
@@ -35,43 +33,25 @@ struct CustomizationPanel: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 20) {
-                    // Header with live preview
-                    headerSection
-                    
-                    // Collapsible sections with progressive disclosure
-                    ForEach(CustomizationSection.allCases) { section in
-                        DisclosureGroup(
-                            isExpanded: Binding(
-                                get: { expandedSections.contains(section) },
-                                set: { isExpanded in
-                                    if isExpanded {
-                                        expandedSections.insert(section)
-                                    } else {
-                                        expandedSections.remove(section)
-                                    }
-                                }
-                            )
-                        ) {
-                            contentForSection(section)
-                                .padding(.top, 12)
-                        } label: {
-                            Label(section.rawValue, systemImage: section.icon)
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                        }
-                        .tint(.primary)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(.primary.opacity(0.1), lineWidth: 1)
-                        )
+            VStack(spacing: 0) {
+                // Header with live preview
+                headerSection
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+                
+                // Tab selector
+                tabSelector
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+                
+                // Content area
+                ScrollView {
+                    VStack(spacing: 24) {
+                        contentForTab(selectedTab)
                     }
+                    .padding(20)
                 }
-                .padding(20)
+                .background(Color(NSColor.controlBackgroundColor).opacity(0.3))
             }
             .navigationTitle("Customize \(tempProfile.emoji) \(tempProfile.name)")
             .toolbar {
@@ -92,7 +72,7 @@ struct CustomizationPanel: View {
                 }
             }
         }
-        .frame(minWidth: 520, minHeight: 600)
+        .frame(minWidth: 580, minHeight: 640)
         .onAppear {
             // Auto-select matching gradient preset
             if let presetName = GradientTheme.presets.first(where: { $0.value == tempProfile.gradientTheme })?.key {
@@ -102,348 +82,428 @@ struct CustomizationPanel: View {
     }
     
     private var headerSection: some View {
-        HStack(spacing: 16) {
-            // Live preview thumbnail
-            ZStack {
-                if tempProfile.gradientTheme.direction == .radial {
-                    tempProfile.gradientTheme.radialGradient
-                } else {
-                    tempProfile.gradientTheme.linearGradient
+        VStack(spacing: 16) {
+            // Live preview window mock-up
+            VStack(spacing: 0) {
+                // Title bar
+                HStack(spacing: 8) {
+                    // Traffic lights
+                    HStack(spacing: 6) {
+                        Circle().fill(.red.opacity(0.8)).frame(width: 12, height: 12)
+                        Circle().fill(.yellow.opacity(0.8)).frame(width: 12, height: 12)
+                        Circle().fill(.green.opacity(0.8)).frame(width: 12, height: 12)
+                    }
+                    .padding(.leading, 12)
+                    
+                    Spacer()
+                    
+                    // Profile info in title bar
+                    HStack(spacing: 8) {
+                        Text(tempProfile.emoji)
+                            .font(.title3)
+                        Text(tempProfile.name.isEmpty ? "Terminal" : tempProfile.name)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    
+                    Spacer()
+                    
+                    // Control buttons
+                    HStack(spacing: 8) {
+                        Circle().fill(.secondary.opacity(0.3)).frame(width: 20, height: 20)
+                        Circle().fill(.secondary.opacity(0.3)).frame(width: 20, height: 20)
+                    }
+                    .padding(.trailing, 12)
                 }
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial)
                 
-                Text(tempProfile.emoji)
-                    .font(.system(size: 28, weight: .medium))
-                    .scaleEffect(1.1)
+                // Terminal content area
+                ZStack {
+                    if tempProfile.gradientTheme.direction == .radial {
+                        tempProfile.gradientTheme.radialGradient
+                    } else {
+                        tempProfile.gradientTheme.linearGradient
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("user@terminal ~ % echo 'Hello \(tempProfile.name)'")
+                        Text("Hello \(tempProfile.name)")
+                            .foregroundStyle(.green)
+                        HStack(spacing: 0) {
+                            Text("user@terminal ~ % ")
+                            Rectangle().fill(.primary).frame(width: 8, height: 12)
+                        }
+                    }
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                }
+                .frame(height: 80)
             }
-            .frame(width: 60, height: 60)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .frame(height: 116)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(.primary.opacity(0.2), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(.primary.opacity(0.2), lineWidth: 0.5)
             )
             .opacity(tempProfile.windowOpacity)
+            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text(tempProfile.name.isEmpty ? "Untitled Terminal" : tempProfile.name)
+            // Profile name editor
+            VStack(spacing: 8) {
+                TextField("Profile Name", text: $tempProfile.name)
                     .font(.title2)
                     .fontWeight(.semibold)
-                    .lineLimit(1)
-                
-                Text("Live Preview")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            Spacer()
-        }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(.primary.opacity(0.1), lineWidth: 1)
-        )
-    }
-    
-    @ViewBuilder
-    private func contentForSection(_ section: CustomizationSection) -> some View {
-        switch section {
-        case .basic:
-            basicInfoSection
-        case .gradient:
-            gradientSection
-        case .appearance:
-            appearanceSection
-        case .preview:
-            previewSection
-        }
-    }
-    
-    private var basicInfoSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Name", systemImage: "textformat")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
-                
-                TextField("Enter terminal name", text: $tempProfile.name)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.body)
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Emoji", systemImage: "face.smiling")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
+                    .textFieldStyle(.plain)
+                    .multilineTextAlignment(.center)
+                    .submitLabel(.done)
                 
                 EnhancedEmojiPicker(selectedEmoji: $tempProfile.emoji)
             }
         }
+        .padding(20)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
     
+    private var tabSelector: some View {
+        HStack(spacing: 0) {
+            ForEach(CustomizationTab.allCases) { tab in
+                Button(action: {
+                    withAnimation(.smooth(duration: 0.3)) {
+                        selectedTab = tab
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 14, weight: .medium))
+                        Text(tab.rawValue)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundStyle(selectedTab == tab ? .white : .primary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(selectedTab == tab ? Color.accentColor : Color.clear)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    
+    @ViewBuilder
+    private func contentForTab(_ tab: CustomizationTab) -> some View {
+        switch tab {
+        case .appearance:
+            appearanceSection
+        case .gradient:
+            gradientSection
+        case .advanced:
+            advancedSection
+        }
+    }
+    
+    
     private var gradientSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Gradient presets with improved layout
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Preset Themes", systemImage: "swatchpalette")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
+        VStack(spacing: 24) {
+            // Gradient presets in a more macOS style
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Color Themes")
+                    .font(.headline)
+                    .fontWeight(.semibold)
                 
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 2), spacing: 12) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
                     ForEach(Array(GradientTheme.presets.keys.sorted()), id: \.self) { presetName in
                         let preset = GradientTheme.presets[presetName]!
                         
                         Button(action: {
-                            withAnimation(.smooth(duration: 0.3)) {
+                            withAnimation(.smooth(duration: 0.4)) {
                                 tempProfile.gradientTheme = preset
                                 selectedGradientPreset = presetName
                             }
                         }) {
                             VStack(spacing: 8) {
                                 ZStack {
-                                    RoundedRectangle(cornerRadius: 10)
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
                                         .fill(preset.linearGradient)
-                                        .frame(height: 44)
+                                        .frame(height: 48)
                                     
                                     if selectedGradientPreset == presetName {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(Color.accentColor, lineWidth: 2.5)
+                                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                            .stroke(Color.accentColor, lineWidth: 3)
                                         
-                                        Image(systemName: "checkmark.circle.fill")
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .bold))
                                             .foregroundStyle(.white)
+                                            .padding(6)
                                             .background(Circle().fill(Color.accentColor))
-                                            .font(.caption)
+                                            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                                     }
                                 }
                                 
                                 Text(presetName)
                                     .font(.caption)
                                     .fontWeight(.medium)
-                                    .foregroundStyle(selectedGradientPreset == presetName ? .primary : .secondary)
+                                    .foregroundStyle(selectedGradientPreset == presetName ? Color.accentColor : .secondary)
                                     .lineLimit(1)
                             }
                         }
                         .buttonStyle(.plain)
-                        .scaleEffect(selectedGradientPreset == presetName ? 1.02 : 1.0)
-                        .animation(.smooth(duration: 0.2), value: selectedGradientPreset == presetName)
+                        .scaleEffect(selectedGradientPreset == presetName ? 1.05 : 1.0)
+                        .shadow(color: selectedGradientPreset == presetName ? Color.accentColor.opacity(0.3) : .clear, radius: 8, x: 0, y: 4)
                     }
                 }
             }
+            .padding(20)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             
-            Divider()
-            
-            // Direction and intensity controls
+            // Direction control
             VStack(alignment: .leading, spacing: 12) {
-                Label("Gradient Direction", systemImage: "arrow.up.right")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
+                Text("Direction")
+                    .font(.headline)
+                    .fontWeight(.semibold)
                 
                 Picker("Direction", selection: $tempProfile.gradientTheme.direction) {
                     ForEach(GradientDirection.allCases, id: \.self) { direction in
-                        Label(direction.displayName, systemImage: direction.systemImage)
-                            .tag(direction)
+                        HStack(spacing: 8) {
+                            Image(systemName: direction.systemImage)
+                            Text(direction.displayName)
+                        }
+                        .tag(direction)
                     }
                 }
                 .pickerStyle(.segmented)
-                .animation(.smooth(duration: 0.3), value: tempProfile.gradientTheme.direction)
             }
+            .padding(20)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             
-            VStack(alignment: .leading, spacing: 8) {
+            // Intensity slider
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Label("Intensity", systemImage: "dial.low")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
+                    Text("Intensity")
+                        .font(.headline)
+                        .fontWeight(.semibold)
                     
                     Spacer()
                     
                     Text("\(Int(tempProfile.gradientTheme.intensity * 100))%")
-                        .font(.caption)
+                        .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(.regularMaterial, in: Capsule())
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.quaternary, in: Capsule())
                 }
                 
-                Slider(value: $tempProfile.gradientTheme.intensity, in: 0.1...1.0, step: 0.05) {
-                    Text("Intensity")
-                } minimumValueLabel: {
-                    Image(systemName: "dial.low")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                } maximumValueLabel: {
-                    Image(systemName: "dial.high")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                }
-                .tint(Color.accentColor)
+                Slider(value: $tempProfile.gradientTheme.intensity, in: 0.1...1.0, step: 0.05)
+                    .tint(Color.accentColor)
             }
+            .padding(20)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
     
     private var appearanceSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Window opacity
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(spacing: 24) {
+            // Window transparency
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Label("Window Opacity", systemImage: "opacity")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
+                    Text("Transparency")
+                        .font(.headline)
+                        .fontWeight(.semibold)
                     
                     Spacer()
                     
                     Text("\(Int(tempProfile.windowOpacity * 100))%")
-                        .font(.caption)
+                        .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(.regularMaterial, in: Capsule())
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.quaternary, in: Capsule())
                 }
                 
-                Slider(value: $tempProfile.windowOpacity, in: 0.3...1.0, step: 0.05) {
-                    Text("Opacity")
-                } minimumValueLabel: {
-                    Image(systemName: "opacity")
+                HStack(spacing: 12) {
+                    Image(systemName: "eyeglasses")
                         .foregroundStyle(.secondary)
                         .font(.caption)
-                } maximumValueLabel: {
+                    
+                    Slider(value: $tempProfile.windowOpacity, in: 0.3...1.0, step: 0.05)
+                        .tint(Color.accentColor)
+                    
                     Image(systemName: "circle.fill")
                         .foregroundStyle(.secondary)
                         .font(.caption)
                 }
-                .tint(Color.accentColor)
             }
-            
-            Divider()
+            .padding(20)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             
             // Border styling
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Border Style", systemImage: "rectangle.dashed")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Border")
+                    .font(.headline)
+                    .fontWeight(.semibold)
                 
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     HStack {
                         Text("Width")
-                            .font(.caption)
+                            .font(.subheadline)
                             .fontWeight(.medium)
-                            .frame(width: 60, alignment: .leading)
+                            .frame(width: 80, alignment: .leading)
                         
                         Slider(value: $tempProfile.borderStyle.width, in: 0.0...4.0, step: 0.5)
                             .tint(Color.accentColor)
                         
-                        Text("\(tempProfile.borderStyle.width, specifier: "%.1f")px")
-                            .font(.caption2)
+                        Text("\(tempProfile.borderStyle.width, specifier: "%.1f")")
+                            .font(.caption)
                             .fontWeight(.medium)
                             .foregroundStyle(.secondary)
-                            .frame(width: 35)
+                            .frame(width: 40, alignment: .trailing)
                     }
                     
                     HStack {
-                        Text("Radius")
-                            .font(.caption)
+                        Text("Roundness")
+                            .font(.subheadline)
                             .fontWeight(.medium)
-                            .frame(width: 60, alignment: .leading)
+                            .frame(width: 80, alignment: .leading)
                         
                         Slider(value: $tempProfile.borderStyle.cornerRadius, in: 0.0...20.0, step: 1.0)
                             .tint(Color.accentColor)
                         
-                        Text("\(Int(tempProfile.borderStyle.cornerRadius))px")
-                            .font(.caption2)
+                        Text("\(Int(tempProfile.borderStyle.cornerRadius))")
+                            .font(.caption)
                             .fontWeight(.medium)
                             .foregroundStyle(.secondary)
-                            .frame(width: 35)
+                            .frame(width: 40, alignment: .trailing)
+                    }
+                }
+            }
+            .padding(20)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+    
+    private var advancedSection: some View {
+        VStack(spacing: 24) {
+            // Export/Import
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Profile Management")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                
+                HStack(spacing: 12) {
+                    Button("Export Profile") {
+                        exportProfile()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    
+                    Button("Import Profile") {
+                        importProfile()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    
+                    Spacer()
+                    
+                    Button("Reset to Default") {
+                        withAnimation(.smooth(duration: 0.4)) {
+                            tempProfile = TerminalProfile()
+                            selectedGradientPreset = nil
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .foregroundStyle(.red)
+                }
+            }
+            .padding(20)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            
+            // Profile info
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Profile Information")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("Created:")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(tempProfile.createdAt.formatted(date: .abbreviated, time: .shortened))
+                            .fontWeight(.medium)
+                    }
+                    
+                    HStack {
+                        Text("Last Used:")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(tempProfile.lastUsed.formatted(date: .abbreviated, time: .shortened))
+                            .fontWeight(.medium)
+                    }
+                    
+                    HStack {
+                        Text("Profile ID:")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(tempProfile.id.uuidString.prefix(8).uppercased())
+                            .font(.system(.caption, design: .monospaced))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(.quaternary, in: Capsule())
+                    }
+                }
+                .font(.subheadline)
+            }
+            .padding(20)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+    
+    private func exportProfile() {
+        // Implementation for exporting profile
+        if let data = profileManager.exportProfile(tempProfile) {
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = "\(tempProfile.name).pintoprofile"
+            panel.allowedContentTypes = [.json]
+            
+            panel.begin { response in
+                if response == .OK, let url = panel.url {
+                    do {
+                        try data.write(to: url)
+                    } catch {
+                        print("Export failed: \(error)")
                     }
                 }
             }
         }
     }
     
-    private var previewSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Live Preview", systemImage: "eye")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-            
-            // Enhanced live preview
-            ZStack {
-                // Background gradient
-                if tempProfile.gradientTheme.direction == .radial {
-                    tempProfile.gradientTheme.radialGradient
-                } else {
-                    tempProfile.gradientTheme.linearGradient
-                }
-                
-                VStack(spacing: 0) {
-                    // Mock title bar with improved styling
-                    HStack(spacing: 12) {
-                        Text(tempProfile.emoji)
-                            .font(.title3)
-                        
-                        Text(tempProfile.name.isEmpty ? "Terminal" : tempProfile.name)
-                            .font(.headline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.primary)
-                        
-                        Spacer()
-                        
-                        // Mock traffic lights
-                        HStack(spacing: 6) {
-                            Circle().fill(.red.opacity(0.8)).frame(width: 12, height: 12)
-                            Circle().fill(.yellow.opacity(0.8)).frame(width: 12, height: 12)
-                            Circle().fill(.green.opacity(0.8)).frame(width: 12, height: 12)
-                        }
+    private func importProfile() {
+        // Implementation for importing profile
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        
+        panel.begin { response in
+            if response == .OK, let url = panel.urls.first {
+                do {
+                    let data = try Data(contentsOf: url)
+                    if profileManager.importProfile(from: data) {
+                        // Success feedback
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(.ultraThinMaterial)
-                    
-                    // Mock terminal content with better realism
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Last login: \(Date().formatted(date: .abbreviated, time: .shortened))")
-                            .foregroundStyle(.secondary)
-                        Text("user@\(tempProfile.name.lowercased().replacingOccurrences(of: " ", with: "-")) ~ % echo 'Welcome to \(tempProfile.name)'")
-                        Text("Welcome to \(tempProfile.name)")
-                            .foregroundStyle(.green)
-                        HStack(spacing: 0) {
-                            Text("user@\(tempProfile.name.lowercased().replacingOccurrences(of: " ", with: "-")) ~ % ")
-                            Rectangle()
-                                .fill(.primary)
-                                .frame(width: 8, height: 14)
-                                .opacity(0.8)
-                        }
-                    }
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(.ultraThinMaterial)
-                    
-                    Spacer(minLength: 0)
+                } catch {
+                    print("Import failed: \(error)")
                 }
             }
-            .frame(height: 140)
-            .clipShape(RoundedRectangle(cornerRadius: tempProfile.borderStyle.cornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: tempProfile.borderStyle.cornerRadius)
-                    .stroke(
-                        tempProfile.borderStyle.color.color,
-                        lineWidth: tempProfile.borderStyle.width
-                    )
-            )
-            .opacity(tempProfile.windowOpacity)
-            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-            .animation(.smooth(duration: 0.3), value: tempProfile.gradientTheme)
-            .animation(.smooth(duration: 0.3), value: tempProfile.windowOpacity)
-            .animation(.smooth(duration: 0.3), value: tempProfile.borderStyle.cornerRadius)
         }
     }
 }

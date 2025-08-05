@@ -6,63 +6,91 @@ struct ProfileSelector: View {
     @State private var showingNewProfileSheet = false
     @State private var newProfileName = ""
     @State private var newProfileEmoji = "💻"
+    @State private var searchText = ""
+    
+    var filteredProfiles: [TerminalProfile] {
+        if searchText.isEmpty {
+            return profileManager.profiles.sorted { $0.lastUsed > $1.lastUsed }
+        } else {
+            return profileManager.profiles.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText)
+            }.sorted { $0.lastUsed > $1.lastUsed }
+        }
+    }
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 16),
-                    GridItem(.flexible(), spacing: 16),
-                    GridItem(.flexible(), spacing: 16)
-                ], spacing: 20) {
-                    ForEach(profileManager.profiles) { profile in
-                        ProfileCard(
-                            profile: profile,
-                            isActive: profile.id == profileManager.activeProfile.id,
-                            onSelect: {
-                                withAnimation(.smooth(duration: 0.3)) {
-                                    profileManager.setActiveProfile(profile)
-                                }
-                                dismiss()
-                            },
-                            onDelete: {
-                                withAnimation(.smooth(duration: 0.4)) {
-                                    profileManager.deleteProfile(profile)
-                                }
-                            },
-                            onDuplicate: {
-                                withAnimation(.smooth(duration: 0.3)) {
-                                    profileManager.duplicateProfile(profile)
-                                }
-                            }
-                        )
-                    }
+            VStack(spacing: 0) {
+                // Search bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
                     
-                    // Add new profile card
-                    AddProfileCard {
-                        showingNewProfileSheet = true
-                    }
+                    TextField("Search personalities...", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.subheadline)
                 }
-                .padding(24)
+                .padding(12)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding()
+                
+                ScrollView {
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 16),
+                        GridItem(.flexible(), spacing: 16)
+                    ], spacing: 20) {
+                        ForEach(filteredProfiles) { profile in
+                            ModernProfileCard(
+                                profile: profile,
+                                isActive: profile.id == profileManager.activeProfile.id,
+                                onSelect: {
+                                    withAnimation(.smooth(duration: 0.4)) {
+                                        profileManager.setActiveProfile(profile)
+                                    }
+                                    dismiss()
+                                },
+                                onDelete: {
+                                    withAnimation(.smooth(duration: 0.4)) {
+                                        profileManager.deleteProfile(profile)
+                                    }
+                                },
+                                onDuplicate: {
+                                    withAnimation(.smooth(duration: 0.3)) {
+                                        profileManager.duplicateProfile(profile)
+                                    }
+                                }
+                            )
+                        }
+                        
+                        // Add new profile card
+                        ModernAddProfileCard {
+                            showingNewProfileSheet = true
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                }
             }
-            .navigationTitle("Terminal Personalities")
+            .navigationTitle("Choose Personality")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done", role: .cancel) {
+                    Button("Done") {
                         dismiss()
                     }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
                 }
                 
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: { showingNewProfileSheet = true }) {
-                        Label("New Profile", systemImage: "plus")
+                        Label("New", systemImage: "plus")
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.regular)
                 }
             }
         }
-        .frame(minWidth: 640, minHeight: 520)
+        .frame(minWidth: 680, minHeight: 560)
         .sheet(isPresented: $showingNewProfileSheet) {
             NewProfileSheet(
                 name: $newProfileName,
@@ -86,7 +114,7 @@ struct ProfileSelector: View {
     }
 }
 
-struct ProfileCard: View {
+struct ModernProfileCard: View {
     let profile: TerminalProfile
     let isActive: Bool
     let onSelect: () -> Void
@@ -96,93 +124,83 @@ struct ProfileCard: View {
     @State private var isHovered = false
     
     var body: some View {
-        VStack(spacing: 14) {
-            // Gradient preview with enhanced styling
-            ZStack {
-                if profile.gradientTheme.direction == .radial {
-                    profile.gradientTheme.radialGradient
-                } else {
-                    profile.gradientTheme.linearGradient
+        Button(action: onSelect) {
+            VStack(spacing: 16) {
+                // Header with emoji and status
+                HStack {
+                    Text(profile.emoji)
+                        .font(.system(size: 32, weight: .medium))
+                        .scaleEffect(isActive ? 1.1 : 1.0)
+                    
+                    Spacer()
+                    
+                    if isActive {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .background(Circle().fill(Color.accentColor).frame(width: 20, height: 20))
+                    }
                 }
                 
-                // Emoji with subtle glow effect
-                Text(profile.emoji)
-                    .font(.system(size: 36, weight: .medium))
-                    .scaleEffect(isActive ? 1.15 : 1.0)
-                    .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 2)
+                // Gradient preview bar
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(.linearGradient(
+                        colors: profile.gradientTheme.swiftUIColors.map { $0.opacity(profile.gradientTheme.intensity) },
+                        startPoint: profile.gradientTheme.direction.startPoint,
+                        endPoint: profile.gradientTheme.direction.endPoint
+                    ))
+                    .frame(height: 4)
+                    .opacity(profile.windowOpacity)
+                
+                // Profile info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(profile.name)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Text("Last used \(RelativeDateTimeFormatter().localizedString(for: profile.lastUsed, relativeTo: Date()))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                
+                Spacer(minLength: 0)
             }
-            .frame(height: 88)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(
-                        isActive ? Color.accentColor : (isHovered ? Color.primary.opacity(0.3) : Color.clear),
-                        lineWidth: isActive ? 2.5 : 1.5
+            .padding(20)
+            .frame(maxWidth: .infinity, minHeight: 140)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.regularMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(
+                                isActive ? Color.accentColor : (isHovered ? .primary.opacity(0.2) : .clear),
+                                lineWidth: isActive ? 2 : 1
+                            )
                     )
             )
+            .scaleEffect(isActive ? 1.02 : (isHovered ? 1.01 : 1.0))
             .shadow(
-                color: isActive ? Color.accentColor.opacity(0.3) : Color.black.opacity(0.1),
-                radius: isActive ? 8 : 4,
+                color: isActive ? Color.accentColor.opacity(0.2) : .black.opacity(0.05),
+                radius: isActive ? 8 : 2,
                 x: 0,
-                y: isActive ? 4 : 2
+                y: isActive ? 4 : 1
             )
-            
-            // Profile info with improved typography
-            VStack(spacing: 6) {
-                Text(profile.name)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                
-                Text("Modified \(RelativeDateTimeFormatter().localizedString(for: profile.lastUsed, relativeTo: Date()))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            
-            Spacer(minLength: 0)
-            
-            // Status indicator with improved design
-            HStack {
-                if isActive {
-                    Label("ACTIVE", systemImage: "checkmark.circle.fill")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(.green.gradient, in: Capsule())
-                } else {
-                    Text("Available")
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(.regularMaterial, in: Capsule())
-                }
-            }
         }
-        .padding(18)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(.primary.opacity(isHovered ? 0.2 : 0.1), lineWidth: 1)
-        )
-        .scaleEffect(isActive ? 1.03 : (isHovered ? 1.01 : 1.0))
+        .buttonStyle(.plain)
         .onHover { hovered in
             withAnimation(.smooth(duration: 0.2)) {
                 isHovered = hovered
             }
         }
-        .onTapGesture {
-            onSelect()
-        }
         .contextMenu {
             Button(action: onSelect) {
-                Label("Select Profile", systemImage: "checkmark.circle")
+                Label("Select", systemImage: "checkmark.circle")
             }
             
             Button(action: onDuplicate) {
@@ -198,76 +216,65 @@ struct ProfileCard: View {
     }
 }
 
-struct AddProfileCard: View {
+struct ModernAddProfileCard: View {
     let onCreate: () -> Void
     
     @State private var isHovered = false
     
     var body: some View {
-        VStack(spacing: 14) {
-            // Plus icon area with enhanced styling
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(.ultraThinMaterial)
+        Button(action: onCreate) {
+            VStack(spacing: 16) {
+                // Plus icon
+                Image(systemName: "plus")
+                    .font(.system(size: 32, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+                
+                // Dashed line separator
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.accentColor.opacity(0.3))
+                    .frame(height: 2)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(
-                                Color.accentColor.opacity(isHovered ? 0.6 : 0.3),
-                                style: StrokeStyle(lineWidth: 2.5, lineCap: .round, dash: [10, 6])
+                        RoundedRectangle(cornerRadius: 2)
+                            .stroke(
+                                Color.accentColor.opacity(0.5),
+                                style: StrokeStyle(lineWidth: 1, dash: [4, 4])
                             )
                     )
                 
-                VStack(spacing: 6) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.white)
-                        .background(Circle().fill(Color.accentColor))
-                    
-                    Text("Add")
-                        .font(.caption)
+                VStack(spacing: 4) {
+                    Text("New Personality")
+                        .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundStyle(Color.accentColor)
+                    
+                    Text("Create a custom terminal style")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
-            }
-            .frame(height: 88)
-            
-            // Enhanced labels
-            VStack(spacing: 6) {
-                Text("New Profile")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.accentColor)
                 
-                Text("Create personality")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
             }
-            
-            Spacer(minLength: 0)
-            
-            // Call to action
-            Text("Tap to create")
-                .font(.caption2)
-                .fontWeight(.medium)
-                .foregroundStyle(Color.accentColor.opacity(0.7))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
-                .background(Color.accentColor.opacity(0.1), in: Capsule())
+            .padding(20)
+            .frame(maxWidth: .infinity, minHeight: 140)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.regularMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(
+                                Color.accentColor.opacity(isHovered ? 0.4 : 0.2),
+                                style: StrokeStyle(lineWidth: 2, dash: [8, 6])
+                            )
+                    )
+            )
+            .scaleEffect(isHovered ? 1.02 : 1.0)
         }
-        .padding(18)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(.primary.opacity(isHovered ? 0.2 : 0.1), lineWidth: 1)
-        )
-        .scaleEffect(isHovered ? 1.02 : 1.0)
+        .buttonStyle(.plain)
         .onHover { hovered in
             withAnimation(.smooth(duration: 0.2)) {
                 isHovered = hovered
             }
-        }
-        .onTapGesture {
-            onCreate()
         }
         .animation(.smooth(duration: 0.2), value: isHovered)
     }
@@ -287,35 +294,43 @@ struct NewProfileSheet: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                // Header section
-                VStack(spacing: 12) {
-                    Image(systemName: "person.badge.plus")
-                        .font(.system(size: 48, weight: .light))
-                        .foregroundStyle(Color.accentColor)
+            VStack(spacing: 32) {
+                // Header with icon
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.accentColor.opacity(0.1))
+                            .frame(width: 80, height: 80)
+                        
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 32, weight: .medium))
+                            .foregroundStyle(Color.accentColor)
+                    }
                     
-                    Text("Create New Terminal Personality")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .multilineTextAlignment(.center)
-                    
-                    Text("Give your terminal a unique personality with a custom name and emoji")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                    VStack(spacing: 8) {
+                        Text("New Personality")
+                            .font(.title)
+                            .fontWeight(.semibold)
+                        
+                        Text("Create a unique terminal experience")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 
-                // Form section
-                VStack(alignment: .leading, spacing: 20) {
+                // Form fields
+                VStack(spacing: 20) {
+                    // Name field
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Profile Name", systemImage: "textformat")
+                        Text("Name")
                             .font(.subheadline)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
                         
-                        TextField("Enter personality name", text: $name)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.body)
+                        TextField("Developer Mode, Creative Flow...", text: $name)
+                            .textFieldStyle(.plain)
+                            .padding(12)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .focused($isNameFieldFocused)
                             .onSubmit {
                                 if isNameValid {
@@ -324,49 +339,61 @@ struct NewProfileSheet: View {
                             }
                     }
                     
+                    // Emoji picker
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Profile Emoji", systemImage: "face.smiling")
+                        Text("Icon")
                             .font(.subheadline)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
                         
-                        EnhancedEmojiPicker(selectedEmoji: $emoji)
+                        CompactEmojiPicker(selectedEmoji: $emoji)
                     }
                 }
                 
                 Spacer()
                 
-                // Preview section
-                VStack(spacing: 8) {
+                // Live preview
+                VStack(spacing: 12) {
                     Text("Preview")
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                     
                     HStack(spacing: 12) {
                         Text(emoji)
-                            .font(.title2)
-                        Text(name.isEmpty ? "New Terminal" : name)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
+                            .font(.title)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(name.isEmpty ? "Untitled Personality" : name)
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                            
+                            Text("Ready to use")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        
                         Spacer()
                     }
-                    .padding(12)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                    .padding(16)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }
             .padding(24)
-            .navigationTitle("New Profile")
+            .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel) {
+                    Button("Cancel") {
                         onCancel()
                     }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
-                        onCreate(name.isEmpty ? "New Terminal" : name, emoji)
+                        onCreate(name.isEmpty ? "New Personality" : name, emoji)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.regular)
@@ -374,9 +401,52 @@ struct NewProfileSheet: View {
                 }
             }
         }
-        .frame(width: 440, height: 380)
+        .frame(width: 480, height: 520)
         .onAppear {
             isNameFieldFocused = true
+        }
+    }
+}
+
+// Compact emoji picker for the sheet
+struct CompactEmojiPicker: View {
+    @Binding var selectedEmoji: String
+    @State private var showingFullPicker = false
+    
+    private let quickEmojis = ["💻", "🚀", "⚡", "🎯", "🔥", "✨", "🧙‍♂️", "🤖", "🎨", "🔮"]
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Current selection
+            Button(action: { showingFullPicker = true }) {
+                Text(selectedEmoji)
+                    .font(.title)
+                    .frame(width: 48, height: 48)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            
+            // Quick selection
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(quickEmojis, id: \.self) { emoji in
+                        Button(emoji) {
+                            selectedEmoji = emoji
+                        }
+                        .font(.title2)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            selectedEmoji == emoji ? Color.accentColor.opacity(0.2) : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        )
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 8)
+            }
+        }
+        .popover(isPresented: $showingFullPicker) {
+            EnhancedEmojiPicker(selectedEmoji: $selectedEmoji)
         }
     }
 }
