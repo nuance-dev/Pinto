@@ -13,6 +13,9 @@ A lightweight, customizable terminal emulator built natively for macOS. Beautifu
 - **Quick Switching**: Tap the profile name to instantly switch personalities
 - **Persistent Settings**: Your profiles are saved and restored between sessions
 
+![Screenshot 2025-08-04 at 22 46 06](https://github.com/user-attachments/assets/fb32b42c-ad86-456d-9e8c-e4bc8e3a50f8)
+
+
 ### Beautiful Interface
 
 - **Gradient Backgrounds**: Stunning linear and radial gradients
