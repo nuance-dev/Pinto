@@ -7,11 +7,9 @@ struct PintoApp: App {
             ContentView()
                 .frame(minWidth: 600, minHeight: 400)
         }
-        // Use hiddenTitleBar to remove the system titlebar so our custom SwiftUI chrome is the only bar rendered.
-        // This still preserves standard window behaviours (traffic-light buttons, full-screen etc.) while hiding the duplicate toolbar.
+        // Hide the default macOS title/toolbar so only our custom SwiftUI bar remains.
         .windowStyle(.hiddenTitleBar)
-        // Allow dragging anywhere in the background because there is no native titlebar area any more.
+        // Allow dragging the whole background because we removed the native titlebar.
         .windowBackgroundDragBehavior(.enabled)
-
     }
 }
