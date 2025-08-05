@@ -2,7 +2,7 @@
 
 A lightweight, customizable terminal emulator built natively for macOS. Beautiful gradients, terminal personalities, and a modern interface that makes command-line work a joy!
 
-![Pinto Terminal Screenshot](https://via.placeholder.com/800x500/1a1a1a/ffffff?text=Pinto+Terminal+Screenshot)
+<img width="4694" height="2379" alt="image" src="https://github.com/user-attachments/assets/a2bc55e8-7e5d-4cf2-bc70-c76b35e719a5" />
 
 ## Features
 
@@ -28,8 +28,6 @@ A lightweight, customizable terminal emulator built natively for macOS. Beautifu
 - **Border Styles**: Customize window borders, radius, and colors
 - **Font Settings**: Full control over terminal fonts and sizing
 - **Profile Management**: Create, edit, and organize your terminal personalities
-
-![Customization Panel](https://via.placeholder.com/600x400/2a2a2a/ffffff?text=Customization+Panel)
 
 ## 💻 Get Started
 
