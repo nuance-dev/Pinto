@@ -163,7 +163,14 @@ struct CustomizationPanel: View {
                     .multilineTextAlignment(.center)
                     .submitLabel(.done)
                 
-                CompactEmojiPicker(selectedEmoji: $tempProfile.emoji)
+                VStack(spacing: 8) {
+                    Text("Profile Icon")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
+                    
+                    EnhancedEmojiPicker(selectedEmoji: $tempProfile.emoji)
+                }
             }
         }
         .padding(20)
@@ -537,19 +544,31 @@ struct EnhancedEmojiPicker: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Current emoji display
+            // Current emoji display with clear customization hint
             Button(action: { showingEmojiGrid.toggle() }) {
-                Text(selectedEmoji)
-                    .font(.title2)
-                    .frame(width: 44, height: 36)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(.primary.opacity(0.2), lineWidth: 1)
-                    )
+                HStack(spacing: 8) {
+                    Text(selectedEmoji)
+                        .font(.title2)
+                    
+                    VStack(spacing: 2) {
+                        Text("Change")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(.primary.opacity(0.2), lineWidth: 1)
+                )
             }
             .buttonStyle(.plain)
-            .help("Click to choose emoji")
+            .help("Click to choose from hundreds of emojis")
             .popover(isPresented: $showingEmojiGrid) {
                 VStack(spacing: 12) {
                     // Search field
