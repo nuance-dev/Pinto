@@ -1,6 +1,6 @@
-# Pinto - A Beautiful Native macOS Terminal Emulator
+# Pinto - A Stylized macOS Terminal Emulator
 
-A lightweight, customizable terminal emulator built natively for macOS. Beautiful gradients, terminal personalities, and a modern interface that makes command-line work a joy!
+A lightweight, customizable terminal emulator built natively for macOS. Now you can give names to your Claude Code instances!
 
 <img width="4694" height="2379" alt="image" src="https://github.com/user-attachments/assets/a2bc55e8-7e5d-4cf2-bc70-c76b35e719a5" />
 
