@@ -40,6 +40,7 @@ struct MainWindowView: View {
     @StateObject private var profileManager: ProfileManager
     @State private var showingCustomization = false
     @State private var showingProfileSelector = false
+    @EnvironmentObject var appDelegate: NSAppDelegate
     
     init() {
         // Create a unique ProfileManager for each window instance
@@ -178,7 +179,10 @@ struct MainWindowView: View {
     }
     
     private var terminalContainer: some View {
-        TerminalWrapperView(profile: $profileManager.activeProfile)
+        TerminalWrapperView(
+            profile: $profileManager.activeProfile,
+            initialDirectory: appDelegate.openedFolderPath
+        )
     }
 }
 

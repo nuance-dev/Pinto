@@ -101,9 +101,22 @@ Please ensure your PR:
 - Updates documentation as needed
 - Maintains compatibility with macOS design guidelines
 
+## 🙏 Acknowledgments
+
+### SwiftTerm
+This project is built upon [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) by Miguel de Icaza and contributors. SwiftTerm provides the robust terminal emulation engine that powers Pinto's core functionality.
+
+- **Repository**: https://github.com/migueldeicaza/SwiftTerm
+- **License**: MIT License
+- **Credits**: SwiftTerm is inspired by xterm.js and includes contributions from the broader terminal emulation community
+
+We extend our sincere gratitude to Miguel de Icaza and all SwiftTerm contributors for creating and maintaining this excellent terminal emulation library that makes Pinto possible.
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+SwiftTerm is also licensed under the MIT License. See the [SwiftTerm LICENSE](https://github.com/migueldeicaza/SwiftTerm/blob/main/LICENSE) for details.
 
 ## 🔗 Links
 

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
     @FocusState private var isTerminalFocused: Bool
+    @EnvironmentObject var appDelegate: NSAppDelegate
 
     var body: some View {
         MainWindowView()

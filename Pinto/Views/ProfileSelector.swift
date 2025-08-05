@@ -21,24 +21,11 @@ struct ProfileSelector: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Search bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    
-                    TextField("Search personalities...", text: $searchText)
-                        .textFieldStyle(.plain)
-                        .font(.subheadline)
-                }
-                .padding(12)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .padding()
-                
                 ScrollView {
                     LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 16),
-                        GridItem(.flexible(), spacing: 16)
-                    ], spacing: 20) {
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ], spacing: 16) {
                         ForEach(filteredProfiles) { profile in
                             ModernProfileCard(
                                 profile: profile,
@@ -67,8 +54,7 @@ struct ProfileSelector: View {
                             showingNewProfileSheet = true
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                    .padding(16)
                 }
             }
             .navigationTitle("Choose Personality")
@@ -90,7 +76,7 @@ struct ProfileSelector: View {
                 }
             }
         }
-        .frame(minWidth: 680, minHeight: 560)
+        .frame(width: 420, height: 360)
         .sheet(isPresented: $showingNewProfileSheet) {
             NewProfileSheet(
                 name: $newProfileName,
@@ -125,79 +111,57 @@ struct ModernProfileCard: View {
     
     var body: some View {
         Button(action: onSelect) {
-            VStack(spacing: 16) {
+            VStack(spacing: 8) {
                 // Header with emoji and status
                 HStack {
                     Text(profile.emoji)
-                        .font(.system(size: 32, weight: .medium))
-                        .scaleEffect(isActive ? 1.1 : 1.0)
+                        .font(.system(size: 24, weight: .medium))
                     
                     Spacer()
                     
                     if isActive {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .background(Circle().fill(Color.accentColor).frame(width: 20, height: 20))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.accentColor)
                     }
                 }
                 
+                // Profile info
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(profile.name)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                
                 // Gradient preview bar
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .fill(.linearGradient(
                         colors: profile.gradientTheme.swiftUIColors.map { $0.opacity(profile.gradientTheme.intensity) },
                         startPoint: profile.gradientTheme.direction.startPoint,
                         endPoint: profile.gradientTheme.direction.endPoint
                     ))
-                    .frame(height: 4)
+                    .frame(height: 3)
                     .opacity(profile.windowOpacity)
-                
-                // Profile info
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(profile.name)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    Text("Last used \(RelativeDateTimeFormatter().localizedString(for: profile.lastUsed, relativeTo: Date()))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                
-                Spacer(minLength: 0)
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, minHeight: 140)
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 80)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(.regularMaterial)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .stroke(
-                                isActive ? Color.accentColor : (isHovered ? .primary.opacity(0.2) : .clear),
-                                lineWidth: isActive ? 2 : 1
+                                isActive ? Color.accentColor : .clear,
+                                lineWidth: 2
                             )
                     )
             )
-            .scaleEffect(isActive ? 1.02 : (isHovered ? 1.01 : 1.0))
-            .shadow(
-                color: isActive ? Color.accentColor.opacity(0.2) : .black.opacity(0.05),
-                radius: isActive ? 8 : 2,
-                x: 0,
-                y: isActive ? 4 : 1
-            )
+            .scaleEffect(isActive ? 1.02 : 1.0)
         }
         .buttonStyle(.plain)
-        .onHover { hovered in
-            withAnimation(.smooth(duration: 0.2)) {
-                isHovered = hovered
-            }
-        }
         .contextMenu {
             Button(action: onSelect) {
                 Label("Select", systemImage: "checkmark.circle")
@@ -211,72 +175,49 @@ struct ModernProfileCard: View {
             
             Button("Delete", role: .destructive, action: onDelete)
         }
-        .animation(.smooth(duration: 0.3), value: isActive)
-        .animation(.smooth(duration: 0.2), value: isHovered)
+        .animation(.smooth(duration: 0.2), value: isActive)
     }
 }
 
 struct ModernAddProfileCard: View {
     let onCreate: () -> Void
     
-    @State private var isHovered = false
-    
     var body: some View {
         Button(action: onCreate) {
-            VStack(spacing: 16) {
+            VStack(spacing: 8) {
                 // Plus icon
                 Image(systemName: "plus")
-                    .font(.system(size: 32, weight: .medium))
+                    .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(Color.accentColor)
                 
-                // Dashed line separator
+                Text("New")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.accentColor)
+                
+                // Dashed line
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.accentColor.opacity(0.3))
-                    .frame(height: 2)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 2)
-                            .stroke(
-                                Color.accentColor.opacity(0.5),
-                                style: StrokeStyle(lineWidth: 1, dash: [4, 4])
-                            )
+                    .stroke(
+                        Color.accentColor.opacity(0.4),
+                        style: StrokeStyle(lineWidth: 1, dash: [3, 3])
                     )
-                
-                VStack(spacing: 4) {
-                    Text("New Personality")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Color.accentColor)
-                    
-                    Text("Create a custom terminal style")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                
-                Spacer(minLength: 0)
+                    .frame(height: 1)
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, minHeight: 140)
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 80)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(.regularMaterial)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .stroke(
-                                Color.accentColor.opacity(isHovered ? 0.4 : 0.2),
-                                style: StrokeStyle(lineWidth: 2, dash: [8, 6])
+                                Color.accentColor.opacity(0.3),
+                                style: StrokeStyle(lineWidth: 1, dash: [6, 4])
                             )
                     )
             )
-            .scaleEffect(isHovered ? 1.02 : 1.0)
         }
         .buttonStyle(.plain)
-        .onHover { hovered in
-            withAnimation(.smooth(duration: 0.2)) {
-                isHovered = hovered
-            }
-        }
-        .animation(.smooth(duration: 0.2), value: isHovered)
     }
 }
 

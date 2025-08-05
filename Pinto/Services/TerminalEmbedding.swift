@@ -4,9 +4,11 @@ import SwiftUI
 
 struct TerminalEmbeddingView: NSViewRepresentable {
     @Binding var profile: TerminalProfile
+    var initialDirectory: String?
 
     func makeNSView(context: Context) -> PintoTerminalView {
         let terminalView = PintoTerminalView()
+        terminalView.initialDirectory = initialDirectory
 
         // Request focus after view is in window hierarchy
         // Reason: macOS 15 requires delayed focus for NSViewRepresentable
@@ -37,6 +39,7 @@ struct TerminalEmbeddingView: NSViewRepresentable {
 class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
     private(set) var terminalView: LocalProcessTerminalView!
     private(set) var isTerminalInitialized = false
+    var initialDirectory: String?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -148,12 +151,13 @@ class PintoTerminalView: NSView, LocalProcessTerminalViewDelegate {
         let shellName = NSString(string: shell).lastPathComponent
         let shellIdiom = "-\(shellName)"  // Login shell format
 
-        // Set the working directory to user's home
-        let homeDirectory = FileManager.default.homeDirectoryForCurrentUser.path
-        FileManager.default.changeCurrentDirectoryPath(homeDirectory)
+        // Set the working directory to initial directory or user's home
+        let workingDirectory = initialDirectory ?? FileManager.default.homeDirectoryForCurrentUser.path
+        FileManager.default.changeCurrentDirectoryPath(workingDirectory)
 
         // Feed welcome message to make terminal visible immediately
-        terminalView.feed(text: "Welcome to \(shellName) in Pinto!\r\n")
+        let directoryMessage = initialDirectory != nil ? " (in \(workingDirectory.replacingOccurrences(of: FileManager.default.homeDirectoryForCurrentUser.path, with: "~")))" : ""
+        terminalView.feed(text: "Welcome to \(shellName) in Pinto\(directoryMessage)!\r\n")
 
         // Start the shell process with login arguments
         terminalView.startProcess(

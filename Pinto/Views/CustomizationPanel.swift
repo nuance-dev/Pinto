@@ -116,31 +116,34 @@ struct CustomizationPanel: View {
                     .padding(.trailing, 12)
                 }
                 .padding(.vertical, 8)
-                .background(.ultraThinMaterial)
+                .background(
+                    ZStack {
+                        if tempProfile.gradientTheme.direction == .radial {
+                            tempProfile.gradientTheme.radialGradient
+                        } else {
+                            tempProfile.gradientTheme.linearGradient
+                        }
+                        
+                        Color.clear.background(.ultraThinMaterial)
+                    }
+                )
                 
                 // Terminal content area
-                ZStack {
-                    if tempProfile.gradientTheme.direction == .radial {
-                        tempProfile.gradientTheme.radialGradient
-                    } else {
-                        tempProfile.gradientTheme.linearGradient
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("user@terminal ~ % echo 'Hello \(tempProfile.name)'")
+                    Text("Hello \(tempProfile.name)")
+                        .foregroundStyle(.green)
+                    HStack(spacing: 0) {
+                        Text("user@terminal ~ % ")
+                        Rectangle().fill(.primary).frame(width: 8, height: 12)
                     }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("user@terminal ~ % echo 'Hello \(tempProfile.name)'")
-                        Text("Hello \(tempProfile.name)")
-                            .foregroundStyle(.green)
-                        HStack(spacing: 0) {
-                            Text("user@terminal ~ % ")
-                            Rectangle().fill(.primary).frame(width: 8, height: 12)
-                        }
-                    }
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
                 }
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
                 .frame(height: 80)
+                .background(.ultraThinMaterial)
             }
             .frame(height: 116)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -160,7 +163,7 @@ struct CustomizationPanel: View {
                     .multilineTextAlignment(.center)
                     .submitLabel(.done)
                 
-                EnhancedEmojiPicker(selectedEmoji: $tempProfile.emoji)
+                CompactEmojiPicker(selectedEmoji: $tempProfile.emoji)
             }
         }
         .padding(20)
@@ -392,7 +395,6 @@ struct CustomizationPanel: View {
     
     private var advancedSection: some View {
         VStack(spacing: 24) {
-            // Export/Import
             VStack(alignment: .leading, spacing: 12) {
                 Text("Profile Management")
                     .font(.headline)
