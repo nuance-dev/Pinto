@@ -4,18 +4,51 @@ import Cocoa
 @main
 struct PintoApp: App {
     @NSApplicationDelegateAdaptor(NSAppDelegate.self) var appDelegate
+    @StateObject private var updateChecker = UpdateChecker()
+    @State private var showingUpdateSheet = false
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .frame(minWidth: 600, minHeight: 400)
                 .environmentObject(appDelegate)
+                .sheet(isPresented: $showingUpdateSheet) {
+                    UpdatePanel(updater: updateChecker)
+                }
+                .onAppear {
+                    // Check for updates when app launches
+                    updateChecker.checkForUpdates()
+                    
+                    // Set up observer for update availability
+                    updateChecker.onUpdateAvailable = {
+                        showingUpdateSheet = true
+                    }
+                }
         }
         // Hide the default macOS title/toolbar so only our custom SwiftUI bar remains.
         .windowStyle(.hiddenTitleBar)
         // Allow dragging the whole background because we removed the native titlebar.
         .windowBackgroundDragBehavior(.enabled)
         .handlesExternalEvents(matching: ["pinto"])
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates...") {
+                    showingUpdateSheet = true
+                    updateChecker.checkForUpdates()
+                }
+                .keyboardShortcut("U", modifiers: [.command])
+                
+                if updateChecker.updateAvailable {
+                    Button("Download Update") {
+                        if let url = updateChecker.downloadURL {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
+                
+                Divider()
+            }
+        }
     }
 }
 
